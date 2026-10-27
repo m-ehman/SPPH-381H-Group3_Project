@@ -1,0 +1,96 @@
+# Preliminary Analysis - Income and Depression Patterns
+
+## Question
+How is family income-to-poverty ratio associated with PHQ-9 depression symptom scores among adults aged 18 and older in NHANES 2021–2023?
+
+## Setup 1 - Merging the two NHANES datasets, making the PHQ-9 score variable, and making the categorical age variable
+```{r}
+library(haven)
+library(dplyr)
+
+project_root <- normalizePath(
+  system2("git", c("rev-parse", "--show-toplevel"), stdout = TRUE),
+  mustWork = TRUE
+)
+raw_dir <- file.path(project_root, "data", "raw")
+data_dir <- file.path(project_root, "data")
+
+demographics <- read_xpt(file.path(raw_dir, "DEMO_L.xpt"))
+depression <- read_xpt(file.path(raw_dir, "DPQ_L.xpt"))
+
+stopifnot(!anyDuplicated(demographics$SEQN), !anyDuplicated(depression$SEQN))
+
+nhanes_merged <- inner_join(demographics, depression, by = "SEQN")
+stopifnot(nrow(nhanes_merged) == n_distinct(nhanes_merged$SEQN))
+
+dpq_items <- paste0("DPQ0", seq(10, 90, by = 10))
+nhanes_merged <- nhanes_merged |>
+  mutate(across(
+    all_of(dpq_items),
+    ~ if_else(.x %in% c(7, 9), NA_real_, .x)
+  )) |>
+  mutate(
+    dpq_missing = rowSums(is.na(across(all_of(dpq_items)))),
+    dpq_score = if_else(
+      dpq_missing >= 3L | is.na(DPQ090),
+      NA_real_,
+      rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9
+    )
+  ) |>
+  select(-dpq_missing) |>
+  mutate(age_cat = cut(
+    RIDAGEYR,
+    breaks = c(-Inf, 18, 30, 40, 50, 60, 70, 80, Inf),
+    right = FALSE,
+    include.lowest = TRUE,
+    ordered_result = TRUE,
+    labels = c("<18", "18-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
+  ))
+
+write.csv(
+  nhanes_merged,
+  file.path(data_dir, "nhanes_merged.csv"),
+  row.names = FALSE,
+  na = ""
+)
+
+nrow(nhanes_merged)
+```
+
+## Setup 2 - Importing the new dataset
+```{r}
+library(tidyverse)
+library(knitr)
+
+nhanes <- read_csv("/workspaces/SPPH-381H-Group3_Project/data/nhanes_merged.csv", show_col_types = FALSE)
+```
+
+## Cohort
+We restricted the prepared file to records with age 18 or older. Missing income and PHQ-9 score were counted before complete-case rows were selected for the grouped results.
+```{r}
+adult_cohort <- nhanes |>
+  filter(RIDAGEYR >= 18)
+
+cohort_counts <- tibble(
+  step = c("Prepared file", "After age 18+ restriction"),
+  n = c(nrow(nhanes), nrow(adult_cohort))
+)
+
+kable(cohort_counts)
+```
+
+## Missingness
+
+
+
+## Table 1 style summary
+
+
+
+## Preliminary figure
+
+
+## Interpretation
+
+
+## What this analysis cannot claim
