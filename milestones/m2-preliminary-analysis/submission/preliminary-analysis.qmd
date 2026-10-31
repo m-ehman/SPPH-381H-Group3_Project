@@ -209,7 +209,7 @@ write_csv(
 The figure groups adults in the analytic sample into bands of family income-to-poverty ratio and shows the mean PHQ-9 total score in each band. Bands one unit wide keep the order of the ratio visible, and the top band holds everyone at the NHANES top code of 5.
 
 ```{r}
-#| fig-cap: "Mean PHQ-9 total score by band of family income-to-poverty ratio, among adults aged 18 and older with an income ratio and a PHQ-9 total. Values are unweighted and descriptive. NHANES top-codes the ratio at 5, so the last band includes everyone at 5 or higher."
+#| fig-cap: "Mean PHQ-9 total score by band of family income-to-poverty ratio among adults aged 18 and older, NHANES 2021-2023. Adults missing an income ratio or a PHQ-9 total were excluded. Values are unweighted and descriptive, not causal or population estimates. NHANES top-codes the ratio at 5, so the last band includes everyone at 5 or higher."
 
 # Income-to-poverty bands
 # AI prompt: R/dplyr. Data frame analysis_df has numeric INDFMPIR (family income-to-poverty
