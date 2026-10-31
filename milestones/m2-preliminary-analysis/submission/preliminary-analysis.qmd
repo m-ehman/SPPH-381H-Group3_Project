@@ -5,6 +5,9 @@ How is family income-to-poverty ratio associated with PHQ-9 depression symptom s
 
 ## Setup 1 - Merging the two NHANES datasets, making the PHQ-9 score variable, and making the categorical age variable
 ```{r}
+#| message: false  
+#| warning: false
+
 library(haven)
 library(dplyr)
 
@@ -30,14 +33,12 @@ nhanes_merged <- nhanes_merged |>
     ~ if_else(.x %in% c(7, 9), NA_real_, .x)
   )) |>
   mutate(
-    dpq_missing = rowSums(is.na(across(all_of(dpq_items)))),
-    dpq_score = if_else(
-      dpq_missing >= 3L | is.na(DPQ090),
-      NA_real_,
-      rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9
-    )
-  ) |>
-  select(-dpq_missing) |>
+  dpq_score = if_else(
+    rowSums(is.na(across(all_of(dpq_items)))) == 0L,
+    rowSums(across(all_of(dpq_items))),
+    NA_real_
+  )
+) |>
   mutate(age_cat = cut(
     RIDAGEYR,
     breaks = c(-Inf, 18, 30, 40, 50, 60, 70, 80, Inf),
@@ -59,14 +60,28 @@ nrow(nhanes_merged)
 
 ## Setup 2 - Importing the new dataset
 ```{r}
+#| message: false  
+#| warning: false
 library(tidyverse)
 library(knitr)
+library(gt)
+library(gtsummary)
 
-nhanes <- read_csv("/workspaces/SPPH-381H-Group3_Project/data/nhanes_merged.csv", show_col_types = FALSE)
+nhanes <- read_csv(
+  file.path(project_root, "data", "nhanes_merged.csv"),
+  show_col_types = FALSE
+)
+
+submission_dir <- file.path(
+  project_root,
+  "milestones",
+  "m2-preliminary-analysis",
+  "submission"
+)
 ```
 
 ## Cohort
-We restricted the prepared file to records with age 18 or older. Missing income and PHQ-9 score were counted before complete-case rows were selected for the grouped results.
+We limited the analysis to adults aged 18 years and older. All 6,337 records in the merged dataset met this age criterion, so no records were removed at this step. Missing income and PHQ-9 scores were assessed before selecting complete cases for the analysis.
 ```{r}
 adult_cohort <- nhanes |>
   filter(RIDAGEYR >= 18)
@@ -81,11 +96,113 @@ kable(cohort_counts)
 
 ## Missingness
 
+Missingness for family income-to-poverty ratio and PHQ-9 score was assessed among all adults aged 18 years and older before restricting the data to complete cases.
 
+```{r}
+# AI prompt: Help draft code to summarize missingness for INDFMPIR and dpq_score before complete-case filtering and export the result as a CSV.
+# Verified: Missing counts were independently checked using is.na() on the adult cohort.
+
+key_vars <- c("INDFMPIR", "dpq_score")
+
+missingness_summary <- adult_cohort |>
+  summarise(
+    across(
+      all_of(key_vars),
+      ~ sum(is.na(.x))
+    )
+  ) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "missing_n"
+  ) |>
+  mutate(
+    total_n = nrow(adult_cohort),
+    missing_percent = 100 * missing_n / total_n,
+    variable = recode(
+      variable,
+      INDFMPIR = "Family income-to-poverty ratio",
+      dpq_score = "PHQ-9 total score"
+    )
+  )
+
+missingness_summary |>
+  gt() |>
+  tab_header(
+    title = "Missingness in Key Analysis Variables",
+    subtitle = "Adults aged 18 years and older, NHANES 2021–2023"
+  ) |>
+  cols_label(
+    variable = "Variable",
+    missing_n = "Missing, n",
+    total_n = "Cohort N",
+    missing_percent = "Missing (%)"
+  ) |>
+  fmt_number(
+    columns = missing_percent,
+    decimals = 1
+  ) |>
+  opt_row_striping()
+
+write_csv(
+  missingness_summary,
+  file.path(submission_dir, "missingness-summary.csv")
+)
+```
+
+## Analytic sample
+
+After documenting missingness, we restricted the analysis to adults with non-missing family income-to-poverty ratio and PHQ-9 scores.
+
+```{r}
+analysis_df <- adult_cohort |>
+  filter(
+    !is.na(INDFMPIR),
+    !is.na(dpq_score)
+  )
+
+nrow(analysis_df)
+```
 
 ## Table 1 style summary
 
+The analytic sample included participants with non-missing family income-to-poverty ratio and PHQ-9 scores. Continuous characteristics are summarized using mean (SD).
 
+```{r}
+# Verified: Analytic N and mean (SD) values for age, INDFMPIR, and PHQ-9 matched independent calculations.
+table1 <- analysis_df |>
+  select(
+    RIDAGEYR,
+    INDFMPIR,
+    dpq_score
+  ) |>
+  tbl_summary(
+    statistic = all_continuous() ~ "{mean} ({sd})",
+    digits = list(
+      RIDAGEYR ~ 1,
+      INDFMPIR ~ 2,
+      dpq_score ~ 1
+    ),
+    label = list(
+      RIDAGEYR ~ "Age, years",
+      INDFMPIR ~ "Family income-to-poverty ratio",
+      dpq_score ~ "PHQ-9 total score"
+    ),
+    missing = "no"
+  ) |>
+  bold_labels() |>
+  modify_caption("**Table 1. Characteristics of the Analytic Sample**")
+
+table1
+
+table1_csv <- table1 |>
+  as_tibble(col_labels = FALSE)
+
+write_csv(
+  table1_csv,
+  file.path(submission_dir, "table1.csv")
+)
+```
 
 ## Preliminary figure
 
