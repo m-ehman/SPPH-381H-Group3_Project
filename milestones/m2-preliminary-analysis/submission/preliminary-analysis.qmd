@@ -206,8 +206,59 @@ write_csv(
 
 ## Preliminary figure
 
+The figure groups adults in the analytic sample into bands of family income-to-poverty ratio and shows the mean PHQ-9 total score in each band. Bands one unit wide keep the order of the ratio visible, and the top band holds everyone at the NHANES top code of 5.
+
+```{r}
+#| fig-cap: "Mean PHQ-9 total score by band of family income-to-poverty ratio among adults aged 18 and older, NHANES 2021-2023. Adults missing an income ratio or a PHQ-9 total were excluded. Values are unweighted and descriptive, not causal or population estimates. NHANES top-codes the ratio at 5, so the last band includes everyone at 5 or higher."
+
+# Income-to-poverty bands
+# AI prompt: R/dplyr. Data frame analysis_df has numeric INDFMPIR (family income-to-poverty
+#   ratio, 0 to 5, two decimals; 5 is a top code meaning "5 or higher") and numeric dpq_score
+#   (PHQ-9 total, 0-27, no NAs). Write cut() bands [0,1), [1,2), [2,3), [3,4), [4,5), [5,Inf)
+#   labelled "Under 1" to "5 or higher" so every row gets a band.
+# Verified: cut(c(0, 0.99, 1, 4.99, 5), breaks = band_breaks, labels = band_labels, right = FALSE)
+#   puts each test value in the expected band; sum(income_band_summary$n) == nrow(analysis_df)
+#   is TRUE, so no row was lost.
+band_breaks <- c(0, 1, 2, 3, 4, 5, Inf)
+band_labels <- c("Under 1", "1 to under 2", "2 to under 3",
+                 "3 to under 4", "4 to under 5", "5 or higher")
+
+# Grouped summary
+# Source: M2 worked example, "Preliminary figure" chunk (group_by + summarise, keep n >= 30).
+#   Our columns replace Cycle, IncomeGroup and BMI.
+income_band_summary <- analysis_df |>
+  mutate(income_band = cut(INDFMPIR, breaks = band_breaks,
+                           labels = band_labels, right = FALSE)) |>
+  group_by(income_band) |>
+  summarise(n = n(), mean_phq9 = mean(dpq_score), .groups = "drop") |>
+  filter(n >= 30)
+
+# Figure
+# Source: M2 worked example ggplot (geom_line + geom_point, expand_limits(y = 0), labs,
+#   theme_minimal). One series here, so no colour scale.
+# AI prompt: Add a label "n = <count>" above each point from column n, and add headroom at
+#   the top of the y axis so the highest label is not cut off.
+# Verified: the n labels match income_band_summary$n; the "5 or higher" point matches
+#   mean(analysis_df$dpq_score[analysis_df$INDFMPIR >= 5]).
+ggplot(income_band_summary, aes(x = income_band, y = mean_phq9, group = 1)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2) +
+  geom_text(aes(label = paste0("n = ", n)), vjust = -1, size = 3.5) +
+  expand_limits(y = 0) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title = "Mean PHQ-9 score by family income-to-poverty ratio",
+    subtitle = "Adults 18 and older, NHANES 2021-2023; unweighted and descriptive",
+    x = "Family income-to-poverty ratio (under 1 = below the poverty line)",
+    y = "Mean PHQ-9 total score (range 0-27)"
+  ) +
+  theme_minimal(base_size = 12)
+```
 
 ## Interpretation
 
+Mean PHQ-9 score fell with each step up in family income-to-poverty ratio, from 5.7 among adults below the poverty line to 3.0 among adults at a ratio of 5 or higher. The pattern is steady enough to justify a fuller analysis, but the 2.7-point gap is small next to the spread of scores across the sample (standard deviation 4.8, Table 1), so individual scores overlap a lot between bands.
 
 ## What this analysis cannot claim
+
+These results are descriptive and do not use the NHANES survey weights, so they describe the adults in this sample, not all U.S. adults. The data are cross-sectional, and the comparisons are not adjusted for other factors such as age or health. As a result, they cannot show that lower income causes depressive symptoms, or rule out that symptoms affect income. The PHQ-9 is a screening tool, not a diagnosis, so mean scores do not show how many adults have depression. Adults missing an income ratio or a PHQ-9 total are not included, and the pattern could differ if they differ from the adults we kept.
