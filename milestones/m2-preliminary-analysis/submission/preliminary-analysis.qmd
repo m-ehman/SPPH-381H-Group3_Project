@@ -5,8 +5,7 @@ How is family income-to-poverty ratio associated with PHQ-9 depression symptom s
 
 ## Setup 1 - Merging the two NHANES datasets, making the PHQ-9 score variable, and making the categorical age variable
 ```{r}
-#| message: false  
-#| warning: false
+#AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands <18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.
 
 library(haven)
 library(dplyr)
@@ -33,12 +32,14 @@ nhanes_merged <- nhanes_merged |>
     ~ if_else(.x %in% c(7, 9), NA_real_, .x)
   )) |>
   mutate(
-  dpq_score = if_else(
-    rowSums(is.na(across(all_of(dpq_items)))) == 0L,
-    rowSums(across(all_of(dpq_items))),
-    NA_real_
-  )
-) |>
+    dpq_missing = rowSums(is.na(across(all_of(dpq_items)))),
+    dpq_score = if_else(
+      dpq_missing >= 3L | is.na(DPQ090),
+      NA_real_,
+      rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9
+    )
+  ) |>
+  select(-dpq_missing) |>
   mutate(age_cat = cut(
     RIDAGEYR,
     breaks = c(-Inf, 18, 30, 40, 50, 60, 70, 80, Inf),
@@ -60,8 +61,6 @@ nrow(nhanes_merged)
 
 ## Setup 2 - Importing the new dataset
 ```{r}
-#| message: false  
-#| warning: false
 library(tidyverse)
 library(knitr)
 library(gt)
