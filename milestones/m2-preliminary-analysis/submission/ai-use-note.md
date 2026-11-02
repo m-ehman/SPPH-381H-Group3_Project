@@ -1,10 +1,35 @@
 # AI use note 
+<br>
+
+## Data setup and PHQ-9 scoring (Yoon)
+
+### Audit trail
+```
+# AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands <18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.
+
+# Verified: The merged dataset has 6,337 rows, and the dpq_score variable matches independent calculations of the PHQ-9 total score. The age_cat variable has the expected distribution of adults across the bands. All of this was compared with the NHANES data codebook.
+```
+
+### What AI helped with
 
 AI was used to merge the two datasets into our working dataset. AI also helped to make new variables (categorical age and PHQ-9 score) in the dataset. 
-#AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands <18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.
-#Verified: The merged dataset has 6,337 rows, and the dpq_score variable matches independent calculations of the PHQ-9 total score. The age_cat variable has the expected distribution of adults across the bands. All of this was compared with the NHANES data codebook.
 
-## Part C: preliminary figure, Table 1, missingness updates, interpretation and claim boundary (Morgan) - draft for Jade to merge
+<br>
+
+## Missingness and first Table 1 (Humnah)
+
+### Audit trail
+
+```
+# AI prompt: Help draft code to summarize missingness for INDFMPIR and dpq_score before
+    complete-case filtering and export the result as a CSV.
+
+# Verified: Missing counts were independently checked using is.na() on the adult cohort.
+```
+
+<br>
+
+## Preliminary figure, Table 1, missingness updates, interpretation and claim boundary (Morgan)
 
 ### Audit trail
 
@@ -55,3 +80,27 @@ I compared the AI-recommended figure with the scatter plot from our M1 visual pl
 4. The refused and don't know counts for the first item matched the CDC codebook.
 5. Each number in the Interpretation matched `income_band_summary` or Table 1.
 6. The text says the results are descriptive and unweighted, and makes no causal or population claim.
+
+<br>
+
+## Methods note, CSV checks and final render (Jade)
+
+### Audit trail
+
+No code was added in this part, so there are no AI prompt and Verified pairs to copy from the qmd.
+
+### What AI helped with
+
+Claude compared the teammate's starter methods note with the final analysis and helped check whether each claim in the note was supported by the code, the rendered output or a source.
+
+### What I changed
+
+I split the methods note into subsections (data and cohort, PHQ-9 total score, analytic sample, Table 1 and figure, software) and rewrote the PHQ-9 scoring rule as a table that matches `data/README.md`. Claude drafted this layout at my request, and I edited it before adding it to the note. I also revised the sentence that introduces the scoring guide reference.
+
+### How I verified the result
+
+1. I compared the numbers in the methods note with the re-rendered html: the analytic sample of 4,831 matches the cohort table, and the 53 adults with a refused or don't know answer match the counts table (23 and 51 answers).
+2. I checked the PHQ-9 rule table in the methods note line by line against `data/README.md` and the scoring code in Setup 1.
+3. I opened `table1.csv` and `missingness-summary.csv` and compared each number with the tables in the html.
+4. I re-rendered the html after the final scoring code update and checked that the code shown in the html matches the qmd.
+5. I searched for the scoring guide site linked in `data/README.md` to check who publishes it and whether it is a reliable source to reference.
