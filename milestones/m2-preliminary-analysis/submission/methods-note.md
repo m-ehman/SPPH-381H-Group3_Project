@@ -35,17 +35,3 @@ Our M1 visual plan proposed a scatter plot of individual adults. We instead plot
 ## Software
 We used R in the course Codespace with `haven`, `tidyverse` (including `dplyr`), `knitr` and `gt`. `gt` was added after the M1 reproducibility plan.
 
----
-
-**To confirm before submitting (delete this list and the draft line above):**
-
-- [x] PHQ-9 scoring rule: if the team switches to prorating, update the scoring sentence and the n of 4,797.
-- [x] Table 1 format: if Table 1 is rebuilt by income band, check that the summaries paragraph still matches it.
-- [x] Figure: confirm the team agrees with the change from the M1 scatter plot. .. if we do, we may want to add a small dated note to the M1 initial-visual-plan.md flagging this change? 
-- [ ] Attribution: if M2 builds on anyone's A6 `eda-note.qmd`, add one sentence saying so (M2 readme asks for this).
-
-- Numbers to confirm after render:
-- [x] [4,831] analytic sample: check nrow(analysis_df) in the new html (old html shows 4,797)
-- [x] [53] adults with a 7 or 9 answer: not computed in the qmd yet. Add a code chunk
-- [x] [gt] package list: check library() lines in the final qmd after Morgan's Table 1
-
