@@ -16,7 +16,7 @@ We followed a project-specific rule for missing items. The full rule is in `data
 | Three or more items missing | Total left missing |
 | Item 9 (`DPQ090`) missing | Total left missing |
 
-We prorated so that adults missing one or two items are not dropped. As a result, some totals are not whole numbers.
+We prorated so that adults missing one or two items are not dropped. As a result, some totals are not whole numbers. We set this rule because the NHANES DPQ_L documentation does not say how to handle partly missing answers. We required item 9 because it asks about self-harm, and an average of the other items should not stand in for it.
 
 
 ## Analytic sample
