@@ -10,4 +10,4 @@
   - If one or two items are missing, the score is prorated: the mean of the completed items is multiplied by nine.
   - If three or more items are missing, `dpq_score` is missing.
   - If `DPQ090` (thoughts of death or self-harm) is missing, `dpq_score` is also missing regardless of whether enough other items were answered.
-  - The `dpq_score` was produced according to these project-specific PHQ-9 rules. The official scoring guide is available at https://casrai.org/guides/phq-9. 
+  - The `dpq_score` was produced according to these project-specific PHQ-9 rules. The scoring guide we referred to is available at https://casrai.org/guides/phq-9. 
