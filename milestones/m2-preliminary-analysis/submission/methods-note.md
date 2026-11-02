@@ -29,7 +29,12 @@ We prorated so that adults missing one or two items are not dropped. As a result
 Table 1 reports N, percent of the sample, PHQ-9 mean (SD) and age mean (SD) for all adults and for each income band. 
 For Table 1 and the figure, we grouped the income-to-poverty ratio into one-unit bands. The ratio is top-coded at 5, so the top band holds everyone at 5 or higher; age is likewise top-coded at 80. PHQ-9 scores are skewed, with an SD larger than the mean, but we report mean (SD) to match the figure and the Week 7 worked example. 
 
-Our M1 visual plan proposed a scatter plot of individual adults. We instead plotted mean PHQ-9 by income band, because the scatter overlapped heavily and showed individual records, which our data intake card commits us to avoid. We report only aggregate results, and the self-harm item (`DPQ090`) appears only within the total score. The results are descriptive and unweighted, so they cannot show cause or estimate depressive symptoms for all U.S. adults.
+Our M1 visual plan proposed a scatter plot of individual adults. We instead plotted mean PHQ-9 by income band, because the scatter overlapped heavily and showed individual records, which our data intake card commits us to avoid. We report only aggregate results, and the self-harm item (`DPQ090`) appears only within the total score. 
+
+
+## What the results can and cannot claim
+
+The results describe the adults in this sample and how their PHQ-9 scores differ across income bands. They are descriptive and unweighted, so the analysis cannot show cause or estimate depressive symptoms for all U.S. adults.
 
 
 ## Software
