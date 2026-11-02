@@ -1,11 +1,18 @@
-# Preliminary Analysis - Income and Depression Patterns
+---
+title: "Preliminary Analysis: Income and Depression Patterns"
+format: html
+---
 
 ## Question
 How is family income-to-poverty ratio associated with PHQ-9 depression symptom scores among adults aged 18 and older in NHANES 2021–2023?
 
 ## Setup 1 - Merging the two NHANES datasets, making the PHQ-9 score variable, and making the categorical age variable
 ```{r}
+#| message: false
+#| warning: false
+
 #AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands <18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.
+#Verified: The merged dataset has 6,337 rows, and the dpq_score variable matches independent calculations of the PHQ-9 total score. The age_cat variable has the expected distribution of adults across the bands. All of this was compared with the NHANES data codebook. 
 
 library(haven)
 library(dplyr)
@@ -33,10 +40,12 @@ nhanes_merged <- nhanes_merged |>
   )) |>
   mutate(
     dpq_missing = rowSums(is.na(across(all_of(dpq_items)))),
-    dpq_score = if_else(
-      dpq_missing >= 3L | is.na(DPQ090),
-      NA_real_,
-      rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9
+    dpq_score = case_when(
+      is.na(DPQ090) | dpq_missing >= 3L ~ NA_real_,
+      dpq_missing == 0L ~ rowSums(across(all_of(dpq_items))),
+      dpq_missing %in% c(1L, 2L) ~
+        rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9,
+      .default = NA_real_
     )
   ) |>
   select(-dpq_missing) |>
@@ -61,10 +70,11 @@ nrow(nhanes_merged)
 
 ## Setup 2 - Importing the new dataset
 ```{r}
+#| message: false
+#| warning: false
 library(tidyverse)
 library(knitr)
 library(gt)
-library(gtsummary)
 
 nhanes <- read_csv(
   file.path(project_root, "data", "nhanes_merged.csv"),
@@ -95,13 +105,18 @@ kable(cohort_counts)
 
 ## Missingness
 
-Missingness for family income-to-poverty ratio and PHQ-9 score was assessed among all adults aged 18 years and older before restricting the data to complete cases.
+Missingness for family income-to-poverty ratio, PHQ-9 score and age was assessed among all adults aged 18 years and older before restricting the data to complete cases.
 
 ```{r}
-# AI prompt: Help draft code to summarize missingness for INDFMPIR and dpq_score before complete-case filtering and export the result as a CSV.
+# AI prompt, original code (Humnah): Help draft code to summarize missingness for INDFMPIR and dpq_score before complete-case filtering and export the result as a CSV.
 # Verified: Missing counts were independently checked using is.na() on the adult cohort.
 
-key_vars <- c("INDFMPIR", "dpq_score")
+# AI prompt, update (Morgan): Add RIDAGEYR (numeric age in years) to key_vars with the label "Age", so every
+#   Table 1 variable has a missingness row, and round missing_percent to one decimal.
+# Verified: the Age row shows 0 missing (the age 18+ filter already drops any missing age);
+#   sum(is.na(adult_cohort$RIDAGEYR)) is 0; the CSV percents have one decimal.
+
+key_vars <- c("INDFMPIR", "dpq_score", "RIDAGEYR")
 
 missingness_summary <- adult_cohort |>
   summarise(
@@ -117,11 +132,12 @@ missingness_summary <- adult_cohort |>
   ) |>
   mutate(
     total_n = nrow(adult_cohort),
-    missing_percent = 100 * missing_n / total_n,
+    missing_percent = round(100 * missing_n / total_n, 1),
     variable = recode(
       variable,
       INDFMPIR = "Family income-to-poverty ratio",
-      dpq_score = "PHQ-9 total score"
+      dpq_score = "PHQ-9 total score",
+      RIDAGEYR = "Age"
     )
   )
 
@@ -149,6 +165,31 @@ write_csv(
 )
 ```
 
+PHQ-9 answers coded 7 (refused) or 9 (don't know) were set to missing before scoring. The table below counts them across the nine items, using the screener file before recoding.
+
+```{r}
+# Refused and don't know answers, counted before they were set to missing
+# AI prompt: R/dplyr. Tibble depression (raw NHANES DPQ_L, one row per adult) has numeric
+#   columns DPQ010 to DPQ090 coded 0-3, 7 (refused), 9 (don't know) or NA. Count across all
+#   nine items: the total 7s, the total 9s, and the number of adults with at least one 7 or 9.
+# Verified: DPQ010 alone gives 5 refused and 16 don't know, matching the CDC DPQ_L codebook;
+#   the totals match sum(depression[dpq_items] == 7, na.rm = TRUE) and the same with 9.
+item_codes <- depression[dpq_items]
+
+refused_dont_know <- tibble(
+  measure = c("Answers coded 7 (refused)",
+              "Answers coded 9 (don't know)",
+              "Adults with at least one 7 or 9"),
+  n = c(
+    sum(item_codes == 7, na.rm = TRUE),
+    sum(item_codes == 9, na.rm = TRUE),
+    sum(rowSums(item_codes == 7 | item_codes == 9, na.rm = TRUE) > 0)
+  )
+)
+
+kable(refused_dont_know)
+```
+
 ## Analytic sample
 
 After documenting missingness, we restricted the analysis to adults with non-missing family income-to-poverty ratio and PHQ-9 scores.
@@ -160,74 +201,84 @@ analysis_df <- adult_cohort |>
     !is.na(dpq_score)
   )
 
-nrow(analysis_df)
+# Add the complete-case step to the cohort flow table from the Cohort section
+# AI prompt: R/tibble. Tibble cohort_counts has columns step (character) and n (integer). Add a
+#   row for the complete-case step with n = nrow(analysis_df), then print it with kable().
+# Verified: the new last row's n equals nrow(analysis_df); the first two rows are unchanged.
+cohort_counts <- cohort_counts |>
+  add_row(step = "After excluding missing income ratio or PHQ-9 total", n = nrow(analysis_df))
+
+kable(cohort_counts)
 ```
 
 ## Table 1 style summary
 
-The analytic sample included participants with non-missing family income-to-poverty ratio and PHQ-9 scores. Continuous characteristics are summarized using mean (SD).
+Table 1 describes the analytic sample: adults aged 18 and older with both a family income-to-poverty ratio and a PHQ-9 total. It shows the sample overall and within one-unit bands of the ratio, which keep its order visible. The top band holds everyone at the NHANES top code of 5. PHQ-9 scores are skewed, with an SD larger than the mean, but we report mean (SD) to match the figure.
 
 ```{r}
-# Verified: Analytic N and mean (SD) values for age, INDFMPIR, and PHQ-9 matched independent calculations.
+# Income-to-poverty bands (moved here from the figure chunk so Table 1 and the figure share them)
+# AI prompt: R/dplyr. Data frame analysis_df has numeric INDFMPIR (family income-to-poverty
+#   ratio, 0 to 5, two decimals; 5 is a top code meaning "5 or higher") and numeric dpq_score
+#   (PHQ-9 total, 0-27, no NAs). Write cut() bands [0,1), [1,2), [2,3), [3,4), [4,5), [5,Inf)
+#   labelled "Under 1" to "5 or higher" so every row gets a band.
+# Verified: cut(c(0, 0.99, 1, 4.99, 5), breaks = band_breaks, labels = band_labels, right = FALSE)
+#   puts each test value in the expected band; anyNA(analysis_df$income_band) is FALSE.
+band_breaks <- c(0, 1, 2, 3, 4, 5, Inf)
+band_labels <- c("Under 1", "1 to under 2", "2 to under 3",
+                 "3 to under 4", "4 to under 5", "5 or higher")
+
+analysis_df <- analysis_df |>
+  mutate(income_band = cut(INDFMPIR, breaks = band_breaks,
+                           labels = band_labels, right = FALSE))
+
+# Table 1: one row for all adults, then one row per income band
+# Source: M2 worked example, "Table 1-style summary" chunk (group_by + summarise, sprintf for
+#   mean (SD), kable, write_csv). Our columns replace IncomeGroup, BMI and Age.
+# AI prompt: R/dplyr. Tibble analysis_df has factor income_band (6 levels), numeric dpq_score
+#   (PHQ-9 total, 0-27, no NAs) and numeric RIDAGEYR (age, no NAs). Keep the group_by +
+#   summarise pattern, but add an "All adults" row above the band rows and a
+#   percent-of-sample column.
+# Verified: the "All adults" N equals nrow(analysis_df); the six band Ns add up to the same
+#   total and match the n labels on the figure; the "All adults" PHQ-9 mean (SD) matches
+#   mean() and sd() run on analysis_df$dpq_score.
 table1 <- analysis_df |>
-  select(
-    RIDAGEYR,
-    INDFMPIR,
-    dpq_score
+  # Stack a copy of every row labelled "All adults", so one summarise() gives both
+  #   the overall row and the band rows
+  mutate(income_band = "All adults") |>
+  bind_rows(analysis_df) |>
+  mutate(income_band = factor(income_band, levels = c("All adults", band_labels))) |>
+  group_by(income_band) |>
+  summarise(
+    N = n(),
+    `% of sample` = sprintf("%.1f", 100 * n() / nrow(analysis_df)),
+    `PHQ-9, mean (SD)` = sprintf("%.1f (%.1f)", mean(dpq_score), sd(dpq_score)),
+    `Age, mean (SD)` = sprintf("%.1f (%.1f)", mean(RIDAGEYR), sd(RIDAGEYR)),
+    .groups = "drop"
   ) |>
-  tbl_summary(
-    statistic = all_continuous() ~ "{mean} ({sd})",
-    digits = list(
-      RIDAGEYR ~ 1,
-      INDFMPIR ~ 2,
-      dpq_score ~ 1
-    ),
-    label = list(
-      RIDAGEYR ~ "Age, years",
-      INDFMPIR ~ "Family income-to-poverty ratio",
-      dpq_score ~ "PHQ-9 total score"
-    ),
-    missing = "no"
-  ) |>
-  bold_labels() |>
-  modify_caption("**Table 1. Characteristics of the Analytic Sample**")
+  rename(`Family income-to-poverty ratio` = income_band)
 
-table1
-
-table1_csv <- table1 |>
-  as_tibble(col_labels = FALSE)
+kable(
+  table1,
+  caption = "Table 1. Characteristics of the analytic sample, overall and by family income-to-poverty ratio. A ratio under 1 means family income below the federal poverty guideline."
+)
 
 write_csv(
-  table1_csv,
+  table1,
   file.path(submission_dir, "table1.csv")
 )
 ```
 
 ## Preliminary figure
 
-The figure groups adults in the analytic sample into bands of family income-to-poverty ratio and shows the mean PHQ-9 total score in each band. Bands one unit wide keep the order of the ratio visible, and the top band holds everyone at the NHANES top code of 5.
+The figure shows the mean PHQ-9 total score in each income band from Table 1.
 
 ```{r}
 #| fig-cap: "Mean PHQ-9 total score by band of family income-to-poverty ratio among adults aged 18 and older, NHANES 2021-2023. Adults missing an income ratio or a PHQ-9 total were excluded. Values are unweighted and descriptive, not causal or population estimates. NHANES top-codes the ratio at 5, so the last band includes everyone at 5 or higher."
 
-# Income-to-poverty bands
-# AI prompt: R/dplyr. Data frame analysis_df has numeric INDFMPIR (family income-to-poverty
-#   ratio, 0 to 5, two decimals; 5 is a top code meaning "5 or higher") and numeric dpq_score
-#   (PHQ-9 total, 0-27, no NAs). Write cut() bands [0,1), [1,2), [2,3), [3,4), [4,5), [5,Inf)
-#   labelled "Under 1" to "5 or higher" so every row gets a band.
-# Verified: cut(c(0, 0.99, 1, 4.99, 5), breaks = band_breaks, labels = band_labels, right = FALSE)
-#   puts each test value in the expected band; sum(income_band_summary$n) == nrow(analysis_df)
-#   is TRUE, so no row was lost.
-band_breaks <- c(0, 1, 2, 3, 4, 5, Inf)
-band_labels <- c("Under 1", "1 to under 2", "2 to under 3",
-                 "3 to under 4", "4 to under 5", "5 or higher")
-
 # Grouped summary
 # Source: M2 worked example, "Preliminary figure" chunk (group_by + summarise, keep n >= 30).
-#   Our columns replace Cycle, IncomeGroup and BMI.
+#   Our columns replace Cycle, IncomeGroup and BMI. Uses the income_band column made in Table 1.
 income_band_summary <- analysis_df |>
-  mutate(income_band = cut(INDFMPIR, breaks = band_breaks,
-                           labels = band_labels, right = FALSE)) |>
   group_by(income_band) |>
   summarise(n = n(), mean_phq9 = mean(dpq_score), .groups = "drop") |>
   filter(n >= 30)
@@ -235,16 +286,16 @@ income_band_summary <- analysis_df |>
 # Figure
 # Source: M2 worked example ggplot (geom_line + geom_point, expand_limits(y = 0), labs,
 #   theme_minimal). One series here, so no colour scale.
-# AI prompt: Add a label "n = <count>" above each point from column n, and add headroom at
-#   the top of the y axis so the highest label is not cut off.
+# AI prompt: Add a label "n = <count>" above each point from column n, far enough above that
+#   it clears the line, and add headroom at the top of the y axis so the highest label fits.
 # Verified: the n labels match income_band_summary$n; the "5 or higher" point matches
 #   mean(analysis_df$dpq_score[analysis_df$INDFMPIR >= 5]).
 ggplot(income_band_summary, aes(x = income_band, y = mean_phq9, group = 1)) +
   geom_line(linewidth = 0.9) +
   geom_point(size = 2) +
-  geom_text(aes(label = paste0("n = ", n)), vjust = -1, size = 3.5) +
+  geom_text(aes(label = paste0("n = ", n)), vjust = -2, size = 3.5) +
   expand_limits(y = 0) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
   labs(
     title = "Mean PHQ-9 score by family income-to-poverty ratio",
     subtitle = "Adults 18 and older, NHANES 2021-2023; unweighted and descriptive",
