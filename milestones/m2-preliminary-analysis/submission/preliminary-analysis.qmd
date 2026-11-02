@@ -12,6 +12,7 @@ How is family income-to-poverty ratio associated with PHQ-9 depression symptom s
 #| warning: false
 
 #AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands <18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.
+#Verified: The merged dataset has 6,337 rows, and the dpq_score variable matches independent calculations of the PHQ-9 total score. The age_cat variable has the expected distribution of adults across the bands. All of this was compared with the NHANES data codebook. 
 
 library(haven)
 library(dplyr)
@@ -39,10 +40,12 @@ nhanes_merged <- nhanes_merged |>
   )) |>
   mutate(
     dpq_missing = rowSums(is.na(across(all_of(dpq_items)))),
-    dpq_score = if_else(
-      dpq_missing >= 3L | is.na(DPQ090),
-      NA_real_,
-      rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9
+    dpq_score = case_when(
+      is.na(DPQ090) | dpq_missing >= 3L ~ NA_real_,
+      dpq_missing == 0L ~ rowSums(across(all_of(dpq_items))),
+      dpq_missing %in% c(1L, 2L) ~
+        rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9,
+      .default = NA_real_
     )
   ) |>
   select(-dpq_missing) |>

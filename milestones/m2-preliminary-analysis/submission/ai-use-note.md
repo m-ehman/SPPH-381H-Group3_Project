@@ -1,6 +1,8 @@
 # AI use note 
 
-AI was used to help with making the PHQ-9 scoring variable based on the scoring rule that we researched. Checked the code components to make sure that scoring manual was followed. 
+AI was used to merge the two datasets into our working dataset. AI also helped to make new variables (categorical age and PHQ-9 score) in the dataset. 
+#AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands <18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.
+#Verified: The merged dataset has 6,337 rows, and the dpq_score variable matches independent calculations of the PHQ-9 total score. The age_cat variable has the expected distribution of adults across the bands. All of this was compared with the NHANES data codebook.
 
 ## Part C: preliminary figure, Table 1, missingness updates, interpretation and claim boundary (Morgan) - draft for Jade to merge
 
