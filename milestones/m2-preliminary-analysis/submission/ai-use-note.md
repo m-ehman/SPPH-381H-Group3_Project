@@ -20,12 +20,36 @@ AI was used to merge the two datasets into our working dataset. AI also helped t
 
 ### Audit trail
 
-```
+## Missingness and first Table 1 (Humnah)
+
+### Audit trail
+
+```r
 # AI prompt: Help draft code to summarize missingness for INDFMPIR and dpq_score before
-    complete-case filtering and export the result as a CSV.
+#   complete-case filtering and export the result as a CSV.
 
 # Verified: Missing counts were independently checked using is.na() on the adult cohort.
+
+# AI prompt: Help create and export a simple Table 1-style descriptive summary of the
+#   analytic sample.
+
+# Verified: Analytic N and mean (SD) values for age, INDFMPIR, and PHQ-9 matched
+#   independent calculations.
 ```
+
+### What AI helped with
+
+AI helped draft the code to summarize missingness for `INDFMPIR` and `dpq_score` before complete-case filtering and export the results as a CSV. AI also helped create the first Table 1-style descriptive summary of the analytic sample.
+
+### What I changed
+
+I applied the code to our adult cohort and key analysis variables and used it to produce the missingness summary and first Table 1 for our analysis. The Table 1 format was later revised by the group for the final analysis.
+
+### How I verified the result
+
+1. I independently checked the number of missing values for `INDFMPIR` and `dpq_score` using `is.na()` on the adult cohort.
+2. I confirmed that missingness was calculated before complete-case filtering.
+3. I independently checked the analytic sample size and the mean and standard deviation values for age, `INDFMPIR`, and PHQ-9 used in the first Table 1.
 
 <br>
 
