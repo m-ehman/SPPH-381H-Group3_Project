@@ -1,4 +1,8 @@
-label,stat_0
-"__Age, years__",52.3 (18.1)
-__Family income-to-poverty ratio__,2.98 (1.66)
-__PHQ-9 total score__,4.2 (4.8)
+Family income-to-poverty ratio,N,% of sample,"PHQ-9, mean (SD)","Age, mean (SD)"
+All adults,4831,100.0,4.2 (4.8),52.3 (18.1)
+Under 1,731,15.1,5.7 (5.7),47.3 (18.1)
+1 to under 2,932,19.3,5.2 (5.5),52.2 (18.8)
+2 to under 3,792,16.4,4.4 (4.9),52.7 (19.3)
+3 to under 4,618,12.8,3.8 (4.2),53.8 (18.2)
+4 to under 5,479,9.9,3.5 (4.2),55.3 (17.3)
+5 or higher,1279,26.5,3.0 (3.6),53.1 (16.3)
