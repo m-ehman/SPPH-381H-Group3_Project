@@ -2235,57 +2235,60 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="setup-1---merging-the-two-nhanes-datasets-making-the-phq-9-score-variable-and-making-the-categorical-age-variable">Setup 1 - Merging the two NHANES datasets, making the PHQ-9 score variable, and making the categorical age variable</h2>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#AI prompt: Read the NHANES 2021-2023 DEMO_L.xpt and DPQ_L.xpt datasets, merge them into a csv dataset, and create a new variable dpq_score that is the sum of DPQ010 through DPQ090. Also create a categorical age variable age_cat with bands &lt;18, 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, and 80+.</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>project_root <span class="ot">&lt;-</span> <span class="fu">normalizePath</span>(</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">system2</span>(<span class="st">&quot;git&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;rev-parse&quot;</span>, <span class="st">&quot;--show-toplevel&quot;</span>), <span class="at">stdout =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">mustWork =</span> <span class="cn">TRUE</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>raw_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(project_root, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;raw&quot;</span>)</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(project_root, <span class="st">&quot;data&quot;</span>)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>demographics <span class="ot">&lt;-</span> <span class="fu">read_xpt</span>(<span class="fu">file.path</span>(raw_dir, <span class="st">&quot;DEMO_L.xpt&quot;</span>))</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>depression <span class="ot">&lt;-</span> <span class="fu">read_xpt</span>(<span class="fu">file.path</span>(raw_dir, <span class="st">&quot;DPQ_L.xpt&quot;</span>))</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="sc">!</span><span class="fu">anyDuplicated</span>(demographics<span class="sc">$</span>SEQN), <span class="sc">!</span><span class="fu">anyDuplicated</span>(depression<span class="sc">$</span>SEQN))</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>nhanes_merged <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(demographics, depression, <span class="at">by =</span> <span class="st">&quot;SEQN&quot;</span>)</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">nrow</span>(nhanes_merged) <span class="sc">==</span> <span class="fu">n_distinct</span>(nhanes_merged<span class="sc">$</span>SEQN))</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>dpq_items <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;DPQ0&quot;</span>, <span class="fu">seq</span>(<span class="dv">10</span>, <span class="dv">90</span>, <span class="at">by =</span> <span class="dv">10</span>))</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>nhanes_merged <span class="ot">&lt;-</span> nhanes_merged <span class="sc">|&gt;</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">all_of</span>(dpq_items),</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">if_else</span>(.x <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">9</span>), <span class="cn">NA_real_</span>, .x)</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">|&gt;</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">dpq_missing =</span> <span class="fu">rowSums</span>(<span class="fu">is.na</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(dpq_items)))),</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">dpq_score =</span> <span class="fu">if_else</span>(</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>      dpq_missing <span class="sc">&gt;=</span> <span class="dv">3</span>L <span class="sc">|</span> <span class="fu">is.na</span>(DPQ090),</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>      <span class="cn">NA_real_</span>,</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>      <span class="fu">rowMeans</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(dpq_items)), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">9</span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>dpq_missing) <span class="sc">|&gt;</span></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age_cat =</span> <span class="fu">cut</span>(</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    RIDAGEYR,</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, <span class="dv">18</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>, <span class="dv">60</span>, <span class="dv">70</span>, <span class="dv">80</span>, <span class="cn">Inf</span>),</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">right =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">include.lowest =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">ordered_result =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;&lt;18&quot;</span>, <span class="st">&quot;18-29&quot;</span>, <span class="st">&quot;30-39&quot;</span>, <span class="st">&quot;40-49&quot;</span>, <span class="st">&quot;50-59&quot;</span>, <span class="st">&quot;60-69&quot;</span>, <span class="st">&quot;70-79&quot;</span>, <span class="st">&quot;80+&quot;</span>)</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>  ))</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>  nhanes_merged,</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(data_dir, <span class="st">&quot;nhanes_merged.csv&quot;</span>),</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">na =</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(nhanes_merged)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Verified: The merged dataset has 6,337 rows, and the dpq_score variable matches independent calculations of the PHQ-9 total score. The age_cat variable has the expected distribution of adults across the bands. All of this was compared with the NHANES data codebook. </span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>project_root <span class="ot">&lt;-</span> <span class="fu">normalizePath</span>(</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">system2</span>(<span class="st">&quot;git&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;rev-parse&quot;</span>, <span class="st">&quot;--show-toplevel&quot;</span>), <span class="at">stdout =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">mustWork =</span> <span class="cn">TRUE</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>raw_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(project_root, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;raw&quot;</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(project_root, <span class="st">&quot;data&quot;</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>demographics <span class="ot">&lt;-</span> <span class="fu">read_xpt</span>(<span class="fu">file.path</span>(raw_dir, <span class="st">&quot;DEMO_L.xpt&quot;</span>))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>depression <span class="ot">&lt;-</span> <span class="fu">read_xpt</span>(<span class="fu">file.path</span>(raw_dir, <span class="st">&quot;DPQ_L.xpt&quot;</span>))</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="sc">!</span><span class="fu">anyDuplicated</span>(demographics<span class="sc">$</span>SEQN), <span class="sc">!</span><span class="fu">anyDuplicated</span>(depression<span class="sc">$</span>SEQN))</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>nhanes_merged <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(demographics, depression, <span class="at">by =</span> <span class="st">&quot;SEQN&quot;</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">nrow</span>(nhanes_merged) <span class="sc">==</span> <span class="fu">n_distinct</span>(nhanes_merged<span class="sc">$</span>SEQN))</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>dpq_items <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;DPQ0&quot;</span>, <span class="fu">seq</span>(<span class="dv">10</span>, <span class="dv">90</span>, <span class="at">by =</span> <span class="dv">10</span>))</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>nhanes_merged <span class="ot">&lt;-</span> nhanes_merged <span class="sc">|&gt;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">all_of</span>(dpq_items),</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">if_else</span>(.x <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">9</span>), <span class="cn">NA_real_</span>, .x)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">|&gt;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">dpq_missing =</span> <span class="fu">rowSums</span>(<span class="fu">is.na</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(dpq_items)))),</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">dpq_score =</span> <span class="fu">case_when</span>(</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>      <span class="fu">is.na</span>(DPQ090) <span class="sc">|</span> dpq_missing <span class="sc">&gt;=</span> <span class="dv">3</span>L <span class="sc">~</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>      dpq_missing <span class="sc">==</span> <span class="dv">0</span>L <span class="sc">~</span> <span class="fu">rowSums</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(dpq_items))),</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>      dpq_missing <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">1</span>L, <span class="dv">2</span>L) <span class="sc">~</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rowMeans</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(dpq_items)), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">9</span>,</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">.default =</span> <span class="cn">NA_real_</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>dpq_missing) <span class="sc">|&gt;</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age_cat =</span> <span class="fu">cut</span>(</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    RIDAGEYR,</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, <span class="dv">18</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>, <span class="dv">60</span>, <span class="dv">70</span>, <span class="dv">80</span>, <span class="cn">Inf</span>),</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">right =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">include.lowest =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">ordered_result =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;&lt;18&quot;</span>, <span class="st">&quot;18-29&quot;</span>, <span class="st">&quot;30-39&quot;</span>, <span class="st">&quot;40-49&quot;</span>, <span class="st">&quot;50-59&quot;</span>, <span class="st">&quot;60-69&quot;</span>, <span class="st">&quot;70-79&quot;</span>, <span class="st">&quot;80+&quot;</span>)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>  nhanes_merged,</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(data_dir, <span class="st">&quot;nhanes_merged.csv&quot;</span>),</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>  <span class="at">na =</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(nhanes_merged)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 6337</code></pre>
 </div>
@@ -2401,20 +2404,20 @@ vertical-align: -.125em;
 <span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
 <span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">opt_row_striping</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
-<div id="zfnvtfjkrd" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#zfnvtfjkrd table {
+<div id="qujnzzenwn" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#qujnzzenwn table {
 font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#zfnvtfjkrd thead, #zfnvtfjkrd tbody, #zfnvtfjkrd tfoot, #zfnvtfjkrd tr, #zfnvtfjkrd td, #zfnvtfjkrd th {
+#qujnzzenwn thead, #qujnzzenwn tbody, #qujnzzenwn tfoot, #qujnzzenwn tr, #qujnzzenwn td, #qujnzzenwn th {
 border-style: none;
 }
-#zfnvtfjkrd p {
+#qujnzzenwn p {
 margin: 0;
 padding: 0;
 }
-#zfnvtfjkrd .gt_table {
+#qujnzzenwn .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
@@ -2439,11 +2442,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_caption {
+#qujnzzenwn .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#zfnvtfjkrd .gt_title {
+#qujnzzenwn .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -2454,7 +2457,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#zfnvtfjkrd .gt_subtitle {
+#qujnzzenwn .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -2465,7 +2468,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#zfnvtfjkrd .gt_heading {
+#qujnzzenwn .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -2476,12 +2479,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_bottom_border {
+#qujnzzenwn .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_col_headings {
+#qujnzzenwn .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -2495,7 +2498,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_col_heading {
+#qujnzzenwn .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2514,7 +2517,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#zfnvtfjkrd .gt_column_spanner_outer {
+#qujnzzenwn .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2525,13 +2528,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#zfnvtfjkrd .gt_column_spanner_outer:first-child {
+#qujnzzenwn .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#zfnvtfjkrd .gt_column_spanner_outer:last-child {
+#qujnzzenwn .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#zfnvtfjkrd .gt_column_spanner {
+#qujnzzenwn .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
@@ -2542,10 +2545,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#zfnvtfjkrd .gt_spanner_row {
+#qujnzzenwn .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#zfnvtfjkrd .gt_group_heading {
+#qujnzzenwn .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2570,7 +2573,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#zfnvtfjkrd .gt_empty_group_heading {
+#qujnzzenwn .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -2584,13 +2587,13 @@ border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 vertical-align: middle;
 }
-#zfnvtfjkrd .gt_from_md > :first-child {
+#qujnzzenwn .gt_from_md > :first-child {
 margin-top: 0;
 }
-#zfnvtfjkrd .gt_from_md > :last-child {
+#qujnzzenwn .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#zfnvtfjkrd .gt_row {
+#qujnzzenwn .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2608,7 +2611,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#zfnvtfjkrd .gt_stub {
+#qujnzzenwn .gt_stub {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2620,7 +2623,7 @@ border-right-color: #D3D3D3;
 padding-left: 5px;
 padding-right: 5px;
 }
-#zfnvtfjkrd .gt_stub_row_group {
+#qujnzzenwn .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2633,13 +2636,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#zfnvtfjkrd .gt_row_group_first td {
+#qujnzzenwn .gt_row_group_first td {
 border-top-width: 2px;
 }
-#zfnvtfjkrd .gt_row_group_first th {
+#qujnzzenwn .gt_row_group_first th {
 border-top-width: 2px;
 }
-#zfnvtfjkrd .gt_summary_row {
+#qujnzzenwn .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -2648,14 +2651,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#zfnvtfjkrd .gt_first_summary_row {
+#qujnzzenwn .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_first_summary_row.thick {
+#qujnzzenwn .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#zfnvtfjkrd .gt_last_summary_row {
+#qujnzzenwn .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2664,7 +2667,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_grand_summary_row {
+#qujnzzenwn .gt_grand_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -2673,7 +2676,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#zfnvtfjkrd .gt_first_grand_summary_row {
+#qujnzzenwn .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2682,7 +2685,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_last_grand_summary_row_top {
+#qujnzzenwn .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2691,10 +2694,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_striped {
+#qujnzzenwn .gt_striped {
 background-color: rgba(128, 128, 128, 0.05);
 }
-#zfnvtfjkrd .gt_table_body {
+#qujnzzenwn .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -2702,7 +2705,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_footnotes {
+#qujnzzenwn .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -2715,7 +2718,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_footnote {
+#qujnzzenwn .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -2723,7 +2726,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#zfnvtfjkrd .gt_sourcenotes {
+#qujnzzenwn .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -2736,64 +2739,64 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#zfnvtfjkrd .gt_sourcenote {
+#qujnzzenwn .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#zfnvtfjkrd .gt_left {
+#qujnzzenwn .gt_left {
 text-align: left;
 }
-#zfnvtfjkrd .gt_center {
+#qujnzzenwn .gt_center {
 text-align: center;
 }
-#zfnvtfjkrd .gt_right {
+#qujnzzenwn .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#zfnvtfjkrd .gt_font_normal {
+#qujnzzenwn .gt_font_normal {
 font-weight: normal;
 }
-#zfnvtfjkrd .gt_font_bold {
+#qujnzzenwn .gt_font_bold {
 font-weight: bold;
 }
-#zfnvtfjkrd .gt_font_italic {
+#qujnzzenwn .gt_font_italic {
 font-style: italic;
 }
-#zfnvtfjkrd .gt_super {
+#qujnzzenwn .gt_super {
 font-size: 65%;
 }
-#zfnvtfjkrd .gt_footnote_marks {
+#qujnzzenwn .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#zfnvtfjkrd .gt_asterisk {
+#qujnzzenwn .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#zfnvtfjkrd .gt_indent_1 {
+#qujnzzenwn .gt_indent_1 {
 text-indent: 5px;
 }
-#zfnvtfjkrd .gt_indent_2 {
+#qujnzzenwn .gt_indent_2 {
 text-indent: 10px;
 }
-#zfnvtfjkrd .gt_indent_3 {
+#qujnzzenwn .gt_indent_3 {
 text-indent: 15px;
 }
-#zfnvtfjkrd .gt_indent_4 {
+#qujnzzenwn .gt_indent_4 {
 text-indent: 20px;
 }
-#zfnvtfjkrd .gt_indent_5 {
+#qujnzzenwn .gt_indent_5 {
 text-indent: 25px;
 }
-#zfnvtfjkrd .katex-display {
+#qujnzzenwn .katex-display {
 display: inline-flex !important;
 margin-bottom: 0.75em !important;
 }
-#zfnvtfjkrd div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#qujnzzenwn div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
 height: 0px !important;
 }
 </style>
