@@ -19,11 +19,6 @@ AI was used to merge the two datasets into our working dataset. AI also helped t
 ## Missingness and first Table 1 (Humnah)
 
 ### Audit trail
-
-## Missingness and first Table 1 (Humnah)
-
-### Audit trail
-
 ```r
 # AI prompt: Help draft code to summarize missingness for INDFMPIR and dpq_score before
 #   complete-case filtering and export the result as a CSV.
