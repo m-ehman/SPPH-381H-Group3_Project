@@ -33,10 +33,12 @@ nhanes_merged <- nhanes_merged |>
   )) |>
   mutate(
     dpq_missing = rowSums(is.na(across(all_of(dpq_items)))),
-    dpq_score = if_else(
-      dpq_missing >= 3L | is.na(DPQ090),
-      NA_real_,
-      rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9
+    dpq_score = case_when(
+      is.na(DPQ090) | dpq_missing >= 3L ~ NA_real_,
+      dpq_missing == 0L ~ rowSums(across(all_of(dpq_items))),
+      dpq_missing %in% c(1L, 2L) ~
+        rowMeans(across(all_of(dpq_items)), na.rm = TRUE) * 9,
+      .default = NA_real_
     )
   ) |>
   select(-dpq_missing) |>
