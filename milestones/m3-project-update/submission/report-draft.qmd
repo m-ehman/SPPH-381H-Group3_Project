@@ -1,0 +1,160 @@
+# Association between Income and Depression in NHANES Adults
+
+## Audience and Questions
+This draft is for staff in a municipal public health department who are preparing an internal briefing on health equity. It asks how the family income to poverty ratio is associated with depression symptom scores among adults aged 18 and older in the NHANES 2021–2023 dataset.
+
+## Data and Methods
+The file is a combined dataset derived from CDC/NCHS public-use files from NHANES August 2021–August 2023: the depression screener (DPQ_L) and demographics (DEMO_L). Because both the demographic and depression measures come from the MEC sample, we use `WTMEC2YR` as a participant-level weight for the estimates rather than multiplying it into individual variables. The survey design also accounts for `SDMVSTRA` (masked variance pseudo-stratum) and `SDMVPSU` (masked variance pseudo-PSU). We restricted the file to ages 18 or older, reported missingness, and then used complete records for age, family income to poverty ratio, and depression symptom scores.
+```{r, message=FALSE}
+library(tidyverse)
+library(knitr)
+library(haven)
+library(dplyr)
+library(survey)
+#AI use note: Use WTMEC2YR as the participant-level weight for the estimates 
+#rather than multiplying it into individual variables. 
+#Also account for SDMVSTRA (masked variance pseudo-stratum) and 
+#SDMVPSU (masked variance pseudo-PSU).
+# Verified: I verified the code Copilot gave me by checking the 
+#NHANES documentation and the survey package documentation. 
+#The code correctly sets up the survey design using 
+#the appropriate weights and stratification variables.
+
+project_root <- normalizePath(
+  system2("git", c("rev-parse", "--show-toplevel"), stdout = TRUE),
+  mustWork = TRUE
+)
+nhanes <- read_csv(
+  file.path(project_root, "data", "nhanes_merged.csv"),show_col_types = FALSE) |>
+  select(SEQN, RIDAGEYR, INDFMPIR, dpq_score, WTMEC2YR, SDMVSTRA, SDMVPSU)
+
+adult_cohort <- nhanes |>
+  filter(RIDAGEYR >= 18)
+
+nhanes_design <- svydesign(
+  ids = ~SDMVPSU,
+  strata = ~SDMVSTRA,
+  weights = ~WTMEC2YR,
+  nest = TRUE,
+  data = nhanes
+)
+adult_design <- subset(nhanes_design, RIDAGEYR >= 18)
+
+missingness <- tibble(
+  variable = c("RIDAGEYR", "INDFMPIR", "dpq_score"),
+  missing_n = c(
+    sum(is.na(adult_design$variables$RIDAGEYR)),
+    sum(is.na(adult_design$variables$INDFMPIR)),
+    sum(is.na(adult_design$variables$dpq_score))
+  )
+)
+
+kable(missingness, caption = "Missingness before complete-case exclusions.")
+```
+
+```{r}
+analysis_design <- subset(
+  adult_design,
+  !is.na(INDFMPIR) & !is.na(dpq_score)
+)
+analysis_df <- analysis_design$variables
+```
+
+## Current Results
+```{r}
+band_breaks <- c(0, 1, 2, 3, 4, 5, Inf)
+band_labels <- c("Under 1", "1 to under 2", "2 to under 3",
+                 "3 to under 4", "4 to under 5", "5 or higher")
+
+analysis_df <- analysis_df |>
+  mutate(income_band = cut(INDFMPIR, breaks = band_breaks,
+                           labels = band_labels, right = FALSE))
+analysis_design <- update(
+  analysis_design,
+  income_band = cut(INDFMPIR, breaks = band_breaks,
+                    labels = band_labels, right = FALSE)
+)
+
+band_means <- svyby(
+  ~dpq_score, ~income_band, analysis_design, svymean, na.rm = TRUE
+) |>
+  as_tibble() |>
+  rename(mean_phq9 = dpq_score)
+band_sds <- svyby(
+  ~dpq_score, ~income_band, analysis_design, svyvar, na.rm = TRUE
+) |>
+  as_tibble() |>
+  transmute(income_band, sd_phq9 = sqrt(dpq_score))
+band_shares <- as.data.frame(prop.table(svytable(~income_band, analysis_design))) |>
+  as_tibble() |>
+  rename(weighted_share = Freq)
+band_counts <- analysis_df |>
+  count(income_band, name = "N")
+
+band_summary <- band_means |>
+  left_join(band_sds, by = "income_band") |>
+  left_join(band_shares, by = "income_band") |>
+  left_join(band_counts, by = "income_band")
+
+overall_mean <- as.numeric(coef(svymean(~dpq_score, analysis_design, na.rm = TRUE)))
+overall_sd <- sqrt(as.numeric(svyvar(~dpq_score, analysis_design, na.rm = TRUE)))
+
+table1 <- bind_rows(
+  tibble(
+    income_band = "All adults",
+    N = nrow(analysis_df),
+    weighted_share = 1,
+    mean_phq9 = overall_mean,
+    sd_phq9 = overall_sd
+  ),
+  band_summary
+) |>
+  mutate(
+    income_band = factor(income_band, levels = c("All adults", band_labels)),
+    `% of weighted sample` = sprintf("%.1f", 100 * weighted_share),
+    `PHQ-9, weighted mean (SD)` = sprintf("%.1f (%.1f)", mean_phq9, sd_phq9)
+  ) |>
+  select(income_band, N, `% of weighted sample`, `PHQ-9, weighted mean (SD)`) |>
+  rename(`Family income-to-poverty ratio` = income_band)
+
+kable(
+  table1,
+  caption = "Table 1. Unweighted sample counts and survey-weighted estimates for adults overall and by family income-to-poverty ratio. A ratio under 1 means family income below the federal poverty guideline."
+)
+```
+
+Survey-weighted estimates suggest that the mean depression symptom scores decreases as family income-to-poverty ratio increases. 
+
+```{r}
+income_band_summary <- band_summary |>
+  transmute(income_band, n = N, mean_phq9) |>
+  filter(n >= 30)
+ggplot(income_band_summary, aes(x = income_band, y = mean_phq9, group = 1)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2) +
+  geom_text(aes(label = paste0("n = ", n)), vjust = -2, size = 3.5) +
+  expand_limits(y = 0) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title = "Mean PHQ-9 score by family income-to-poverty ratio",
+    subtitle = "Adults 18 and older, NHANES 2021-2023; survey-weighted and descriptive",
+    x = "Family income-to-poverty ratio (under 1 = below the poverty line)",
+    y = "Mean PHQ-9 total score (range 0-27)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Draft Interpretation
+The overall difference is substantial, indicating an association between family income and depression symptom severity. The figure shows a clear downward trend in mean PHQ-9 scores as family income-to-poverty ratio increases, with the largest differences observed between the lowest and highest income bands. This suggests that lower income is associated with higher depression symptom scores among adults in the NHANES 2021–2023 dataset.
+
+## Limitations
+- The analysis is based on cross-sectional data, which limits the ability to infer causality between income and depression.
+- Household income and depression assessments are self-reported, which may introduce social desirability and recall biases and potentially lead to misclassification.
+- The analysis does not account for potential confounding variables such as employment status, education level, or access to healthcare, which may influence both income and depression.
+- The PHQ-9 is a screening tool, not a diagnosis of depression, and may not capture the full spectrum of depressive disorders.
+
+## Draft Next Steps
+For the next steps, we suggest examining potential confounders and effect modifiers, such as gender, race/ethnicity, and education level, to better understand the underlying mechanisms of the observed association. Further research could also involve longitudinal studies to assess changes in income and depression over time. That extension is not part of the course project. 
+
+### References
+Centers for Disease Control and Prevention, National Center for Health Statistics. 2026. “National Health and Nutrition Examination Survey.” https://wwwn.cdc.gov/nchs/nhanes/. 
