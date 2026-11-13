@@ -5,7 +5,7 @@
 ### What AI helped with
 AI helped to use WTMEC2YR (2 year sample weight) in the analysis and NHANES survey design object for future analysis. 
 
-### AI aduit trail
+### AI audit trail
 AI use note: Use WTMEC2YR as the participant-level weight for the estimates rather than multiplying it into individual variables. Also account for SDMVSTRA (masked variance pseudo-stratum) and SDMVPSU (masked variance pseudo-PSU).
 Verified: I verified the code Copilot gave me by checking the NHANES documentation and the survey package documentation. The code correctly sets up the survey design using the appropriate weights and stratification variables.
 
@@ -41,4 +41,4 @@ I wrote the dashboard question to include the control, the selected income band,
 
 - I compared the table rows and the figure's n labels and point heights with report-draft.html, before and after changing selected_band.
 - I checked each caption statement against the code: N is an unweighted count(), and the percentages, means, and SDs are survey-weighted.
-- I checked each line of dashboard-preview.md against the rendered dashboard.html.
+- I checked the information in dashboard-preview.md against dashboard.qmd and the rendered dashboard.html.
