@@ -1,0 +1,173 @@
+---
+title: "Association between Income and Depression in NHANES Adults" 
+---
+
+## Audience and Question
+
+### Audience
+This dashboard is for staff in a municipal public health department who are preparing an internal briefing on health equity. 
+
+### Question
+How does the mean PHQ-9 depression symptom score in a selected family income-to-poverty band compare with those in other income bands and with the overall mean among adults aged 18 and older in NHANES 2021–2023?
+
+## Setup
+
+```{r}
+#| message: false
+#| warning: false
+# AI prompt: Adapt the setup code from report-draft.qmd for the dashboard. Keep the survey design (WTMEC2YR, SDMVSTRA, SDMVPSU), the age 18+ and complete-case filters, and the income bands. Load the data with a relative path and load only the packages this page uses.
+# Verified: the analytic sample is n = 4,831, the same as the All adults row of Table 1 in report-draft.html.
+#   The six income band counts (731, 932, 792, 618, 479, 1279) match the N column of that table.
+#   The weight and design variables are the same as in report-draft.qmd, and the page renders from the project root.
+
+library(tidyverse)
+library(knitr)
+library(survey)
+
+nhanes <- read_csv("data/nhanes_merged.csv", show_col_types = FALSE) |>
+  select(SEQN, RIDAGEYR, INDFMPIR, dpq_score, WTMEC2YR, SDMVSTRA, SDMVPSU)
+
+nhanes_design <- svydesign(
+  ids = ~SDMVPSU,
+  strata = ~SDMVSTRA,
+  weights = ~WTMEC2YR,
+  nest = TRUE,
+  data = nhanes
+)
+adult_design <- subset(nhanes_design, RIDAGEYR >= 18)
+
+analysis_design <- subset(
+  adult_design,
+  !is.na(INDFMPIR) & !is.na(dpq_score)
+)
+
+band_breaks <- c(0, 1, 2, 3, 4, 5, Inf)
+band_labels <- c("Under 1", "1 to under 2", "2 to under 3",
+                 "3 to under 4", "4 to under 5", "5 or higher")
+
+analysis_design <- update(
+  analysis_design,
+  income_band = cut(INDFMPIR, breaks = band_breaks,
+                    labels = band_labels, right = FALSE)
+)
+analysis_df <- analysis_design$variables
+```
+
+Data: NHANES August 2021–August 2023 (DPQ_L and DEMO_L), adults 18 and older with both a family income-to-poverty ratio and a PHQ-9 total (n = `r nrow(analysis_df)`).
+
+## Control
+Change `selected_band` to one of the six income bands and render again. The table, figure, and interpretation update.
+
+```{r}
+# AI prompt: Add one editable control value for the income band, and stop with a clear error if the value is not one of the six band labels.
+# Verified: changing the value to "5 or higher" updated the table, the figure title, and the interpretation. An invalid value stops the render with the error message.
+selected_band <- "Under 1"
+```
+
+```{r}
+if (!selected_band %in% band_labels) {
+  stop("selected_band must be one of: ", paste(band_labels, collapse = ", "))
+}
+```
+
+Valid values: `r paste0('"', band_labels, '"', collapse = ", ")`.
+
+## Table
+```{r}
+# AI prompt: Adapt the Table 1 code from report-draft.qmd for the dashboard: show only the selected band and All adults, with a caption on which columns are weighted.
+# Verified: rows match Table 1 in report-draft.html, including after changing selected_band.
+#   Caption checked against the code: N from count() is unweighted; %, mean, and SD from svy functions are weighted.
+
+band_means <- svyby(
+  ~dpq_score, ~income_band, analysis_design, svymean, na.rm = TRUE
+) |>
+  as_tibble() |>
+  rename(mean_phq9 = dpq_score)
+band_sds <- svyby(
+  ~dpq_score, ~income_band, analysis_design, svyvar, na.rm = TRUE
+) |>
+  as_tibble() |>
+  transmute(income_band, sd_phq9 = sqrt(dpq_score))
+band_shares <- as.data.frame(prop.table(svytable(~income_band, analysis_design))) |>
+  as_tibble() |>
+  rename(weighted_share = Freq)
+band_counts <- analysis_df |>
+  count(income_band, name = "N")
+
+band_summary <- band_means |>
+  left_join(band_sds, by = "income_band") |>
+  left_join(band_shares, by = "income_band") |>
+  left_join(band_counts, by = "income_band")
+
+overall_mean <- as.numeric(coef(svymean(~dpq_score, analysis_design, na.rm = TRUE)))
+overall_sd <- sqrt(as.numeric(svyvar(~dpq_score, analysis_design, na.rm = TRUE)))
+
+selected_row <- band_summary |>
+  filter(income_band == selected_band)
+
+bind_rows(
+  selected_row |> mutate(income_band = as.character(income_band)),
+  tibble(
+    income_band = "All adults",
+    N = nrow(analysis_df),
+    weighted_share = 1,
+    mean_phq9 = overall_mean,
+    sd_phq9 = overall_sd
+  )
+) |>
+  transmute(
+    `Family income-to-poverty ratio` = income_band,
+    N,
+    `% of weighted sample` = sprintf("%.1f", 100 * weighted_share),
+    `PHQ-9, weighted mean (SD)` = sprintf("%.1f (%.1f)", mean_phq9, sd_phq9)
+  ) |>
+  kable(
+    caption = "Selected income band compared with all adults. N is the unweighted sample count. Percentages, means, and SDs are survey-weighted. A ratio under 1 means family income below the federal poverty guideline."
+  )
+```
+
+## Figure
+```{r}
+# AI prompt: Adapt the figure from report-draft.qmd for the dashboard: highlight the selected band in red, put it in the title, and add a caption with the exclusions and the descriptive limit.
+# Verified: n labels and point heights match the figure in report-draft.html.
+#   Changing selected_band moves the red point and updates the title.
+#   Each caption statement was checked against the code: n is an unweighted count(), and the exclusion matches the complete-case filter in Setup (missing INDFMPIR or dpq_score).
+
+income_band_summary <- band_summary |>
+  transmute(income_band, n = N, mean_phq9) |>
+  filter(n >= 30)
+
+ggplot(income_band_summary, aes(x = income_band, y = mean_phq9, group = 1)) +
+  geom_line(linewidth = 0.9, colour = "grey50") +
+  geom_point(size = 2, colour = "grey30") +
+  geom_point(
+    data = filter(income_band_summary, income_band == selected_band),
+    size = 4, colour = "#b2182b"
+  ) +
+  geom_text(aes(label = paste0("n = ", n)), vjust = -2, size = 3.5) +
+  expand_limits(y = 0) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title = paste("Mean PHQ-9 score, selected band:", selected_band),
+    subtitle = "Adults 18 and older, NHANES 2021-2023; survey-weighted and descriptive",
+    x = "Family income-to-poverty ratio (under 1 = below the poverty line)",
+    y = "Mean PHQ-9 total score (range 0-27)",
+    caption = paste0(
+      "Red point = selected band. n = unweighted sample count.\n",
+      "Adults missing the family income-to-poverty ratio or the PHQ-9 total are excluded.\n",
+      "Descriptive summary. It does not support causal claims."
+    )
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Interpretation
+
+Among adults in the **`r selected_band`** band, the survey-weighted mean PHQ-9 score is **`r sprintf("%.1f", selected_row$mean_phq9)`**, compared with `r sprintf("%.1f", overall_mean)` for all adults included in the analysis. Lower income is associated with higher depression symptom scores among adults in the NHANES 2021–2023 dataset. This does not show that income causes depression symptoms.
+
+## Limitation
+
+- The results are descriptive and cross-sectional, so they cannot show cause, and they do not adjust for other factors, such as employment status, education level, or access to healthcare, that may affect both income and depression symptoms.
+- Income and PHQ-9 answers are self-reported, which may introduce social desirability and recall biases and lead to misclassification.
+- The PHQ-9 is a screening tool, not a diagnosis of depression.
+- The page shows group averages only. It does not show any individual records, and the smallest band has `r min(band_summary$N)` adults.
