@@ -147,9 +147,9 @@ Reproducibility note, project update and feedback request
 
 ### What AI helped with
 
-- Claude reviewed the M3 brief and the M3 files and flagged an interpretation wording ("substantial" and "clear downward trend"), the missing figure caption and missingness limitation, and the out-of-date reproducibility note and next steps.
-- Claude drafted the revised interpretation, the figure caption, the missingness limitation, the title header and a grammar fix in `report-draft.qmd`. No analysis code changed; the only code chunk change is the figure caption option.
-- Claude drafted a first pass of the language updates to `reproducibility-note.md` and `project-update.md`, and drafted `feedback-request.md`.
+- Claude reviewed the M3 brief and the M3 files and flagged the interpretation wording ("substantial" and "clear downward trend"), the missing figure caption and missingness limitation, and the out-of-date reproducibility note and next steps.
+- AI drafted or suggested the revised interpretation, the figure caption, the missingness limitation, a corrected weight explanation, a sentence on the PHQ-9 scoring rule and analytic sample, the title header, an in-text citation and a grammar fix in `report-draft.qmd`. No analysis code changed. The only code chunk changes are the figure caption option and relabelling an AI comment to "AI prompt:" to match this note.
+- AI drafted a first pass of the language updates to `reproducibility-note.md` and `project-update.md`, and drafted `feedback-request.md`.
 
 ### What I changed
 
@@ -160,6 +160,6 @@ Reproducibility note, project update and feedback request
 
 - I opened a new Codespace after the `survey` setup change and rendered `report-draft.qmd` and `dashboard.qmd` without installing anything by hand.
 - I checked the numbers in the revised interpretation and the project update against Table 1 in the re-rendered report and the M2 `table1.csv`.
-- I ran `band_summary` and `overall_sd` in R and confirmed the weighted means behind the interpretation: 5.62 for "Under 1" and 2.92 for "5 or higher" (a gap of 2.70), an overall SD of 4.67, and a lower mean in each higher band.
+- I ran `band_summary` and `overall_sd` in R and confirmed the weighted means behind the interpretation: 5.62 for "Under 1" and 2.92 for "5 or higher" (a gap of about 2.7), an overall SD of 4.67, and a lower mean in each higher band.
 - I compared the dashboard table for "Under 1" (731, 13.4, 5.6 (5.7)) with Table 1 in the report.
 - I checked that the report and dashboard make the same claim: an association, with no causal or national claim.
