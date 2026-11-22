@@ -1,5 +1,7 @@
-# Association between Income and Depression in NHANES Adults
-
+---
+title: "Association between Income and Depression in NHANES Adults: Draft"
+format: html
+---
 ## Audience and Questions
 This draft is for staff in a municipal public health department who are preparing an internal briefing on health equity. It asks how the family income to poverty ratio is associated with depression symptom scores among adults aged 18 and older in the NHANES 2021–2023 dataset.
 
@@ -123,9 +125,10 @@ kable(
 )
 ```
 
-Survey-weighted estimates suggest that the mean depression symptom scores decreases as family income-to-poverty ratio increases. 
+Survey-weighted estimates suggest that mean depression symptom scores decrease as family income-to-poverty ratio increases.
 
 ```{r}
+#| fig-cap: "Mean PHQ-9 total score by band of family income-to-poverty ratio among adults aged 18 and older, NHANES 2021-2023. Means are survey-weighted; n labels are unweighted sample counts. Adults missing an income ratio or a PHQ-9 total were excluded. NHANES top-codes the ratio at 5, so the last band includes everyone at 5 or higher. The y-axis starts at 0, the lowest possible score. Values are descriptive, not causal."
 income_band_summary <- band_summary |>
   transmute(income_band, n = N, mean_phq9) |>
   filter(n >= 30)
@@ -145,13 +148,14 @@ ggplot(income_band_summary, aes(x = income_band, y = mean_phq9, group = 1)) +
 ```
 
 ## Draft Interpretation
-The overall difference is substantial, indicating an association between family income and depression symptom severity. The figure shows a clear downward trend in mean PHQ-9 scores as family income-to-poverty ratio increases, with the largest differences observed between the lowest and highest income bands. This suggests that lower income is associated with higher depression symptom scores among adults in the NHANES 2021–2023 dataset.
+Survey-weighted mean PHQ-9 scores were lower in each higher income band, from 5.6 among adults below the poverty line to 2.9 among adults at a ratio of 5 or higher (Table 1). The 2.7-point gap is modest next to the spread of scores (weighted SD 4.7), so individual scores overlap a lot between bands. Because the estimates use the NHANES survey weights, they aim to describe U.S. adults rather than only the adults in our sample, but they do not correct for the adults we excluded for missing data. This suggests that lower income is associated with higher depression symptom scores among adults in the NHANES 2021–2023 dataset.
 
 ## Limitations
 - The analysis is based on cross-sectional data, which limits the ability to infer causality between income and depression.
 - Household income and depression assessments are self-reported, which may introduce social desirability and recall biases and potentially lead to misclassification.
 - The analysis does not account for potential confounding variables such as employment status, education level, or access to healthcare, which may influence both income and depression.
 - The PHQ-9 is a screening tool, not a diagnosis of depression, and may not capture the full spectrum of depressive disorders.
+- Adults missing a family income-to-poverty ratio or a PHQ-9 total (see the missingness table) were excluded. The survey weights do not correct for this, so the results could differ if the excluded adults differ from those we kept.
 
 ## Draft Next Steps
 For the next steps, we suggest examining potential confounders and effect modifiers, such as gender, race/ethnicity, and education level, to better understand the underlying mechanisms of the observed association. Further research could also involve longitudinal studies to assess changes in income and depression over time. That extension is not part of the course project. 

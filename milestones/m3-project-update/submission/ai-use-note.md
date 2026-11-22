@@ -3,11 +3,31 @@
 ## Report draft
 
 ### What AI helped with
-AI helped to use WTMEC2YR (2 year sample weight) in the analysis and NHANES survey design object for future analysis. 
+Copilot helped set up the NHANES survey design object, using WTMEC2YR (the 2-year MEC sample weight) as the weight and SDMVSTRA and SDMVPSU for the design. It also helped adapt our M2 Table 1 code to survey-weighted estimates using `svyby()`, `svyvar()` and `svytable()`. I updated the title, interpretation and limitations myself.
+
+The income-band, Table 1 and figure code started from our M2 analysis. Their AI prompt and Verified pairs are in the M2 `ai-use-note.md`.
 
 ### AI audit trail
-AI use note: Use WTMEC2YR as the participant-level weight for the estimates rather than multiplying it into individual variables. Also account for SDMVSTRA (masked variance pseudo-stratum) and SDMVPSU (masked variance pseudo-PSU).
-Verified: I verified the code Copilot gave me by checking the NHANES documentation and the survey package documentation. The code correctly sets up the survey design using the appropriate weights and stratification variables.
+Survey design
+- AI prompt: Use WTMEC2YR as the participant-level weight for the estimates rather than multiplying it into individual variables. Also account for SDMVSTRA (masked variance pseudo-stratum) and SDMVPSU (masked variance pseudo-PSU).
+- Verified: I verified the code Copilot gave me by checking the NHANES documentation and the survey package documentation. The code correctly sets up the survey design using the appropriate weights and stratification variables.
+
+Weighted Table 1
+- AI prompt: Adapt our Table 1 code to the survey design: use svyby() for the weighted mean and SD of dpq_score by income_band, svytable() for each band's weighted share, and keep the unweighted N from count().
+- Verified: the six band Ns match our M2 Table 1 and add to 4,831, the weighted shares add to 100%, and the figure's points match the weighted means.
+
+### What I changed
+- I updated the title to "Association between Income and Depression in NHANES Adults", following the M1 feedback.
+- I replaced the unweighted M2 summaries with survey-weighted estimates. Table 1 keeps the unweighted N and now shows weighted percentages, means and SDs, and the figure plots the weighted means.
+- I built the survey design on the merged file and then used `subset()` for adults and complete cases, instead of filtering the data first, so the design information stays intact.
+- I revised the limitations following the M1 feedback, adding that self-reported answers can bring social desirability bias, recall bias and misclassification. I removed the unweighted limitation now that the weights are applied.
+
+### How I verified the result
+- I checked the survey design code against the NHANES documentation and the survey package documentation.
+- The analytic sample is still 4,831 and the six band counts match our M2 Table 1, so applying the weights did not drop or add anyone.
+- The weighted shares in Table 1 add to 100%.
+- The weighted means are close to the unweighted M2 means (for example, 5.6 vs 5.7 for "Under 1"), as expected.
+- The figure's points and n labels match Table 1.
 
 ## Dashboard and dashboard preview
 
@@ -112,3 +132,34 @@ I changed the note after running the reproducibility check myself. Instead of on
 - I checked the packages loaded in the report, including `survey`.
 - I rendered `report-draft.qmd` in the course Codespace and confirmed that the first render failed because `survey` was not installed.
 - After manually installing `survey`, I reran the report and confirmed that it rendered successfully and regenerated the report output.
+
+## Feedback request and final check
+
+### AI audit trail
+
+Report draft edits
+- AI prompt: Revise the interpretation so it gives the Table 1 numbers and describes the gap at the same strength as our M2 interpretation, with no causal or national claim. Restore the M2 figure caption for the weighted results and add a limitation on adults excluded for missing data.
+- Verified: each number in the interpretation matches Table 1 in the re-rendered report (5.6, 2.9, a gap of 2.7, weighted SD 4.7). The report and dashboard make the same association claim.
+
+Reproducibility note, project update and feedback request
+- AI prompt: Update the reproducibility note and project update now that `survey` is in the Codespace setup, and draft a feedback request with one specific question each on correctness, interpretation, visual clarity, reproducibility and audience fit.
+- Verified: the render commands, data path and package list match the repository (`data/README.md` and `.devcontainer/install-packages.sh`). The stable finding numbers match Table 1 and the M2 `table1.csv`. Each feedback question points to something in the report or dashboard.
+
+### What AI helped with
+
+- Claude reviewed the M3 brief and the M3 files and flagged an interpretation wording ("substantial" and "clear downward trend"), the missing figure caption and missingness limitation, and the out-of-date reproducibility note and next steps.
+- Claude drafted the revised interpretation, the figure caption, the missingness limitation, the title header and a grammar fix in `report-draft.qmd`. No analysis code changed; the only code chunk change is the figure caption option.
+- Claude drafted a first pass of the language updates to `reproducibility-note.md` and `project-update.md`, and drafted `feedback-request.md`.
+
+### What I changed
+
+- I edited Claude's suggested wording throughout for plain language, clarity, and length before adding it to our files.
+- I added the date the instructor confirmed `survey` to the reproducibility note, and had the reproducibility question in the feedback request say that we added a package.
+
+### How I verified the result
+
+- I opened a new Codespace after the `survey` setup change and rendered `report-draft.qmd` and `dashboard.qmd` without installing anything by hand.
+- I checked the numbers in the revised interpretation and the project update against Table 1 in the re-rendered report and the M2 `table1.csv`.
+- I ran `band_summary` and `overall_sd` in R and confirmed the weighted means behind the interpretation: 5.62 for "Under 1" and 2.92 for "5 or higher" (a gap of 2.70), an overall SD of 4.67, and a lower mean in each higher band.
+- I compared the dashboard table for "Under 1" (731, 13.4, 5.6 (5.7)) with Table 1 in the report.
+- I checked that the report and dashboard make the same claim: an association, with no causal or national claim.
