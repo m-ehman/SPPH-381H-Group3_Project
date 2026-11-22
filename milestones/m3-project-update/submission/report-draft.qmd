@@ -6,21 +6,21 @@ format: html
 This draft is for staff in a municipal public health department who are preparing an internal briefing on health equity. It asks how the family income to poverty ratio is associated with depression symptom scores among adults aged 18 and older in the NHANES 2021–2023 dataset.
 
 ## Data and Methods
-The file is a combined dataset derived from CDC/NCHS public-use files from NHANES August 2021–August 2023: the depression screener (DPQ_L) and demographics (DEMO_L). Because both the demographic and depression measures come from the MEC sample, we use `WTMEC2YR` as a participant-level weight for the estimates rather than multiplying it into individual variables. The survey design also accounts for `SDMVSTRA` (masked variance pseudo-stratum) and `SDMVPSU` (masked variance pseudo-PSU). We restricted the file to ages 18 or older, reported missingness, and then used complete records for age, family income to poverty ratio, and depression symptom scores.
+The file is a combined dataset derived from CDC/NCHS public-use files from NHANES August 2021–August 2023 (Centers for Disease Control and Prevention, National Center for Health Statistics 2026): the depression screener (DPQ_L) and demographics (DEMO_L). Family income was collected in the household interview, and the depression screener was asked at the Mobile Examination Center (MEC). Because the analysis combines both, we use the MEC exam weight `WTMEC2YR` as a participant-level weight for the estimates rather than multiplying it into individual variables. The survey design also accounts for `SDMVSTRA` (masked variance pseudo-stratum) and `SDMVPSU` (masked variance pseudo-PSU). We restricted the file to ages 18 or older, reported missingness, and then used complete records for age, family income to poverty ratio, and depression symptom scores. Of the 6,337 adults in the linked files, 4,831 had both a family income-to-poverty ratio and a usable PHQ-9 total. Following our scoring rule (see `data/README.md`), totals with one or two missing items were prorated, and totals with three or more missing items, or a missing item 9, were left missing.
 ```{r, message=FALSE}
 library(tidyverse)
 library(knitr)
 library(haven)
 library(dplyr)
 library(survey)
-#AI use note: Use WTMEC2YR as the participant-level weight for the estimates 
-#rather than multiplying it into individual variables. 
-#Also account for SDMVSTRA (masked variance pseudo-stratum) and 
-#SDMVPSU (masked variance pseudo-PSU).
-# Verified: I verified the code Copilot gave me by checking the 
-#NHANES documentation and the survey package documentation. 
-#The code correctly sets up the survey design using 
-#the appropriate weights and stratification variables.
+# AI prompt: Use WTMEC2YR as the participant-level weight for the estimates
+#   rather than multiplying it into individual variables.
+#   Also account for SDMVSTRA (masked variance pseudo-stratum) and
+#   SDMVPSU (masked variance pseudo-PSU).
+# Verified: I verified the code Copilot gave me by checking the
+#   NHANES documentation and the survey package documentation.
+#   The code correctly sets up the survey design using
+#   the appropriate weights and stratification variables.
 
 project_root <- normalizePath(
   system2("git", c("rev-parse", "--show-toplevel"), stdout = TRUE),
@@ -152,7 +152,7 @@ Survey-weighted mean PHQ-9 scores were lower in each higher income band, from 5.
 
 ## Limitations
 - The analysis is based on cross-sectional data, which limits the ability to infer causality between income and depression.
-- Household income and depression assessments are self-reported, which may introduce social desirability and recall biases and potentially lead to misclassification.
+- Family income and depression assessments are self-reported, which may introduce social desirability and recall biases and potentially lead to misclassification.
 - The analysis does not account for potential confounding variables such as employment status, education level, or access to healthcare, which may influence both income and depression.
 - The PHQ-9 is a screening tool, not a diagnosis of depression, and may not capture the full spectrum of depressive disorders.
 - Adults missing a family income-to-poverty ratio or a PHQ-9 total (see the missingness table) were excluded. The survey weights do not correct for this, so the results could differ if the excluded adults differ from those we kept.

@@ -2233,21 +2233,21 @@ vertical-align: -.125em;
 </section>
 <section id="data-and-methods" class="level2">
 <h2 class="anchored" data-anchor-id="data-and-methods">Data and Methods</h2>
-<p>The file is a combined dataset derived from CDC/NCHS public-use files from NHANES August 2021–August 2023: the depression screener (DPQ_L) and demographics (DEMO_L). Because both the demographic and depression measures come from the MEC sample, we use <code>WTMEC2YR</code> as a participant-level weight for the estimates rather than multiplying it into individual variables. The survey design also accounts for <code>SDMVSTRA</code> (masked variance pseudo-stratum) and <code>SDMVPSU</code> (masked variance pseudo-PSU). We restricted the file to ages 18 or older, reported missingness, and then used complete records for age, family income to poverty ratio, and depression symptom scores.</p>
+<p>The file is a combined dataset derived from CDC/NCHS public-use files from NHANES August 2021–August 2023 (Centers for Disease Control and Prevention, National Center for Health Statistics 2026): the depression screener (DPQ_L) and demographics (DEMO_L). Family income was collected in the household interview, and the depression screener was asked at the Mobile Examination Center (MEC). Because the analysis combines both, we use the MEC exam weight <code>WTMEC2YR</code> as a participant-level weight for the estimates rather than multiplying it into individual variables. The survey design also accounts for <code>SDMVSTRA</code> (masked variance pseudo-stratum) and <code>SDMVPSU</code> (masked variance pseudo-PSU). We restricted the file to ages 18 or older, reported missingness, and then used complete records for age, family income to poverty ratio, and depression symptom scores. Of the 6,337 adults in the linked files, 4,831 had both a family income-to-poverty ratio and a usable PHQ-9 total. Following our scoring rule (see <code>data/README.md</code>), totals with one or two missing items were prorated, and totals with three or more missing items, or a missing item 9, were left missing.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survey)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#AI use note: Use WTMEC2YR as the participant-level weight for the estimates </span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#rather than multiplying it into individual variables. </span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#Also account for SDMVSTRA (masked variance pseudo-stratum) and </span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SDMVPSU (masked variance pseudo-PSU).</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Verified: I verified the code Copilot gave me by checking the </span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#NHANES documentation and the survey package documentation. </span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#The code correctly sets up the survey design using </span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#the appropriate weights and stratification variables.</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># AI prompt: Use WTMEC2YR as the participant-level weight for the estimates</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   rather than multiplying it into individual variables.</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   Also account for SDMVSTRA (masked variance pseudo-stratum) and</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   SDMVPSU (masked variance pseudo-PSU).</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Verified: I verified the code Copilot gave me by checking the</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#   NHANES documentation and the survey package documentation.</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#   The code correctly sets up the survey design using</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   the appropriate weights and stratification variables.</span></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>project_root <span class="ot">&lt;-</span> <span class="fu">normalizePath</span>(</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">system2</span>(<span class="st">&quot;git&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;rev-parse&quot;</span>, <span class="st">&quot;--show-toplevel&quot;</span>), <span class="at">stdout =</span> <span class="cn">TRUE</span>),</span>
@@ -2475,7 +2475,7 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
 <ul>
 <li>The analysis is based on cross-sectional data, which limits the ability to infer causality between income and depression.</li>
-<li>Household income and depression assessments are self-reported, which may introduce social desirability and recall biases and potentially lead to misclassification.</li>
+<li>Family income and depression assessments are self-reported, which may introduce social desirability and recall biases and potentially lead to misclassification.</li>
 <li>The analysis does not account for potential confounding variables such as employment status, education level, or access to healthcare, which may influence both income and depression.</li>
 <li>The PHQ-9 is a screening tool, not a diagnosis of depression, and may not capture the full spectrum of depressive disorders.</li>
 <li>Adults missing a family income-to-poverty ratio or a PHQ-9 total (see the missingness table) were excluded. The survey weights do not correct for this, so the results could differ if the excluded adults differ from those we kept.</li>
