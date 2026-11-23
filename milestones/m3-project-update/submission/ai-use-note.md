@@ -162,4 +162,4 @@ Reproducibility note, project update and feedback request
 - I checked the numbers in the revised interpretation and the project update against Table 1 in the re-rendered report and the M2 `table1.csv`.
 - I ran `band_summary` and `overall_sd` in R and confirmed the weighted means behind the interpretation: 5.62 for "Under 1" and 2.92 for "5 or higher" (a gap of about 2.7), an overall SD of 4.67, and a lower mean in each higher band.
 - I compared the dashboard table for "Under 1" (731, 13.4, 5.6 (5.7)) with Table 1 in the report.
-- I checked that the report and dashboard make the same claim: an association, with no causal or national claim.
+- I checked that the report and dashboard make the same association claim and do not make a causal claim.
